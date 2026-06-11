@@ -32,7 +32,33 @@ The AI initially placed `idempotency_key` as a field in the JSON request body. I
 
 **Trade-off:** Clients must set a header explicitly rather than including a field in a JSON payload they're already constructing. Minor inconvenience; correct semantics.
 
-### 4. Three-layer middleware: CORS + TraceID + RequestLogging
+### 4. Technology stack choices
+
+#### 1. FastAPI
+
+Chosen over Flask for three reasons: native Pydantic integration means request/response validation is declarative with no boilerplate; automatic OpenAPI/Swagger docs at /docs make the API self-documenting and testable without a separate client; and async support is built-in for future extensibility. For a time-boxed exercise, the productivity gain over Flask is significant.
+
+#### 2. Pydantic v2
+
+The natural pairing with FastAPI. Enforces structured input/output at the boundary layer, catches type errors before they reach the service layer, and serialises Decimal amounts as strings cleanly via field_serializer — which is critical for monetary precision.
+
+#### 3. SQLAlchemy 2.x
+
+Chosen for explicit transaction control — the execute path requires fine-grained BEGIN IMMEDIATE transaction management that an ORM like Tortoise or a query builder like Databases abstracts away too aggressively. SQLAlchemy's session model gives full control over commit/rollback boundaries, which is non-negotiable for atomic two-leg execution.
+
+#### 4. Alembic
+
+The standard migration tool for SQLAlchemy. Chosen over manual schema management because the assignment requires demonstrating atomicity and concurrency — having a clean, versioned schema that can be torn down and rebuilt reliably is essential for the concurrency test suite.
+
+#### 5. SQLite
+
+Permitted by the assignment and sufficient for demonstrating all required invariants. WAL mode + BEGIN IMMEDIATE transactions satisfy the concurrency requirements without the operational overhead of running a Postgres instance. The trade-off is that SQLite's write serialisation means lower write throughput at scale — noted in README as a known limitation.
+
+#### 6. pytest + Hypothesis
+
+pytest for its fixture model, which makes test database isolation clean. Hypothesis for property-based testing over random currency amounts and pairs — the assignment explicitly requires this and Hypothesis is the Python standard for it.
+
+### 5. Three-layer middleware: CORS + TraceID + RequestLogging
 
 The AI initially suggested only CORS middleware. I extended this to three layers.
 
@@ -77,9 +103,34 @@ AI proposed this. I verified: 20 digits of precision with 8 decimal places gives
 
 ## Things the AI Got Wrong
 
-_To be updated as implementation progresses._
+### 1. UUID generation: Python-side default, not DB-side
 
----
+The database design doc specifies String(36) primary keys but did not specify where the UUID is generated. I explicitly required Python-side generation using uuid.uuid4() as the column default.
+Reasoning: SQLite has no native gen_random_uuid() equivalent unlike Postgres. If the default is left unspecified, SQLAlchemy ORM inserts will produce rows with NULL primary keys — the server default only fires on raw SQL inserts, not ORM-level inserts.
+
+#### Fix applied:
+
+```python
+id: Mapped[str] = mapped_column(
+    String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+)
+```
+
+### 2. TimestampMixin: Python-side defaults required alongside server_default
+
+The database design specified server_default=func.now() on created_at and updated_at but omitted Python-side default values.
+Reasoning: SQLite's server_default only fires on raw SQL inserts. SQLAlchemy ORM inserts bypass it entirely, meaning created_at and updated_at would be NULL on all ORM-created rows — which is every row in this codebase.
+
+#### Fix applied:
+
+```python
+updated_at: Mapped[datetime] = mapped_column(
+    DateTime(timezone=True),
+    server_default=func.now(),
+    default=func.now(),
+    onupdate=func.now(),
+)
+```
 
 ## What I Would Do With Another Day
 
