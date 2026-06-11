@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import customers_router
 from app.db.session import check_db_connectivity
 from app.middlewares import RequestLoggingMiddleware, TraceIDMiddleware
 
@@ -34,6 +35,8 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(TraceIDMiddleware)
+
+    app.include_router(customers_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
