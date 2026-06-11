@@ -71,6 +71,29 @@ RequestLoggingMiddleware — the assignment explicitly asks for example log outp
 
 **Trade-off:** Two custom middleware classes add a small amount of boilerplate, but both are directly tied to spec commitments already made. Not adding them would mean manually threading trace IDs through every endpoint handler.
 
+### 6. Customer model includes name and email fields
+
+The AI-generated design had Customer with only the inherited id, created_at, and updated_at fields. I added name and email.
+**Reasoning:** A customer identified only by a UUID is unusable in practice — there is no way to look up or identify a customer without an external identifier. email is unique and serves as a natural lookup key. name makes the list endpoint human-readable. Both are the minimum viable identifier set without crossing into KYC territory, which is explicitly out of scope.
+**Trade-off:** Adds a unique constraint on email, which means the Alembic migration and create_customer service must handle duplicate email errors gracefully. Small cost for a significant usability gain.
+
+### 7. GET /api/v1/customers list endpoint added
+
+The AI-generated design omitted a list endpoint. I added GET /api/v1/customers with skip/limit pagination.
+**Reasoning:** Without a list endpoint there is no way for a client to retrieve a customer ID — making the entire API difficult to use manually and forcing tests to store IDs from creation responses. The list endpoint is a standard REST resource and costs almost nothing to implement.
+
+### 8. Flat app/api/ structure — no routers/ subfolder
+
+I initially accepted the AI's suggestion of an app/api/routers/ subfolder but reversed the decision after reasoning through what else app/api/ would contain.
+**Reasoning:** A routers/ subfolder only earns its place if app/api/ contains other things alongside it — shared dependencies, middleware, utilities. Since all of those live in app/core/ and app/db/, app/api/ would contain nothing but routers/, making it a folder inside a folder with no organisational value. Flat is cleaner:
+app/api/
+├── **init**.py ← aggregates and mounts all routers
+├── customers.py
+├── quotes.py
+├── rates.py
+├── transactions.py
+**Trade-off:** If app/api/ grows to need shared API-layer dependencies in the future, a routers/ subfolder can be introduced then. No need to add the indirection upfront.
+
 ---
 
 ## Decisions Delegated to AI (and Verified)

@@ -3,9 +3,9 @@
 ## Goal
 
 Implement the customer and balance domain models, Alembic migration, service
-layer, and REST endpoints for customer creation and balance management. After
-this step clients can create customers, view balances, and manually credit
-funds. No quotes, rates, or execution logic.
+layer, and REST endpoints for customer creation, listing, and balance
+management. After this step clients can create customers, list them, view
+balances, and manually credit funds. No quotes, rates, or execution logic.
 
 ---
 
@@ -22,10 +22,17 @@ funds. No quotes, rates, or execution logic.
 ```python
 class Customer(BaseModel):
     __tablename__ = "customers"
-    # id, created_at, updated_at inherited from BaseModel
+
+    name: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 ```
 
-No extra columns required beyond the base model for now.
+`id`, `created_at`, and `updated_at` are inherited from `BaseModel`.
+
+**Rationale (see `DECISIONS.md` §6):** A UUID-only customer is unusable in
+practice. `email` is a unique natural lookup key; `name` makes list responses
+human-readable. Both are minimum viable identifiers without crossing into KYC
+territory.
 
 ### `app/models/balance.py`
 
@@ -55,21 +62,22 @@ class Balance(BaseModel):
 
 `alembic/versions/<rev>_add_customers_and_balances.py`
 
-- Create `customers` table.
+- Create `customers` table with `name`, `email` (unique), and base columns.
 - Create `balances` table with FK, unique constraint, and check constraint.
 
 ---
 
 ## Schemas (`app/schemas/customer.py`)
 
-| Schema                    | Purpose                                      |
-| ------------------------- | -------------------------------------------- |
-| `CustomerCreate`          | Empty body (no fields required for now)      |
-| `CustomerResponse`        | `id`, `created_at`                           |
-| `BalanceResponse`         | `currency`, `amount` (serialised as `string`) |
-| `BalanceListResponse`     | `customer_id`, `balances: list[BalanceResponse]` |
-| `BalanceCreditRequest`    | `currency`, `amount` (string)                |
-| `BalanceCreditResponse`   | `currency`, `amount`, `previous_amount`      |
+| Schema                    | Purpose                                                |
+| ------------------------- | ------------------------------------------------------ |
+| `CustomerCreate`          | `name`, `email`                                        |
+| `CustomerResponse`        | `id`, `name`, `email`, `created_at`                    |
+| `CustomerListResponse`    | `customers: list[CustomerResponse]`, `total`, `skip`, `limit` |
+| `BalanceResponse`         | `currency`, `amount` (serialised as `string`)           |
+| `BalanceListResponse`     | `customer_id`, `balances: list[BalanceResponse]`       |
+| `BalanceCreditRequest`    | `currency`, `amount` (string)                          |
+| `BalanceCreditResponse`   | `currency`, `amount`, `previous_amount`                |
 
 All response schemas: `model_config = ConfigDict(from_attributes=True)`.
 Amount fields use `Decimal` internally, serialised as `str` in JSON.
@@ -78,13 +86,19 @@ Amount fields use `Decimal` internally, serialised as `str` in JSON.
 
 ## Service Layer (`app/services/customer_service.py`)
 
-### `create_customer(db: Session) -> Customer`
+### `create_customer(db: Session, name: str, email: str) -> Customer`
 
-1. Insert `Customer`.
+1. Insert `Customer` with `name` and `email`.
 2. Insert four `Balance` rows (USD, EUR, KES, NGN) with `amount = 0`.
 3. Commit and return customer.
 
-All in a single transaction.
+All in a single transaction. On duplicate `email`, raise `DuplicateEmailError`
+(map to `409` or `422` in the router — prefer `409 Conflict`).
+
+### `list_customers(db: Session, skip: int = 0, limit: int = 50) -> tuple[list[Customer], int]`
+
+- Return a paginated slice of customers and total count.
+- `skip` and `limit` query params with sensible defaults (`limit` max 100).
 
 ### `get_balances(db: Session, customer_id: str) -> list[Balance]`
 
@@ -104,17 +118,22 @@ Concurrency-safe credit is not required by spec for the test-fixture endpoint.
 
 ---
 
-## API Router (`app/api/routers/customers.py`)
+## API Layer (`app/api/customers.py`)
+
+Flat `app/api/` layout — no `routers/` subfolder (see `DECISIONS.md` §8).
+Routers live directly under `app/api/`; `app/api/__init__.py` aggregates and
+exports them for mounting in `main.py`.
 
 Prefix: `/api/v1/customers`, tag: `customers`.
 
-| Method | Path                                     | Status | Description         |
-| ------ | ---------------------------------------- | ------ | ------------------- |
-| `POST` | `/api/v1/customers`                      | `201`  | Create customer     |
-| `GET`  | `/api/v1/customers/{customer_id}/balances` | `200`  | List all balances   |
-| `POST` | `/api/v1/customers/{customer_id}/balances/credit` | `200`  | Credit a balance |
+| Method | Path                                                | Status | Description              |
+| ------ | --------------------------------------------------- | ------ | ------------------------ |
+| `POST` | `/api/v1/customers`                                 | `201`  | Create customer          |
+| `GET`  | `/api/v1/customers`                                 | `200`  | List customers (`skip`, `limit`) |
+| `GET`  | `/api/v1/customers/{customer_id}/balances`          | `200`  | List all balances        |
+| `POST` | `/api/v1/customers/{customer_id}/balances/credit`   | `200`  | Credit a balance         |
 
-Register router in `app/main.py` via `create_app()`.
+Register via `app/api/__init__.py` and mount in `app/main.py` via `create_app()`.
 
 ---
 
@@ -123,6 +142,7 @@ Register router in `app/main.py` via `create_app()`.
 Create minimal exception classes needed by this module:
 
 - `CustomerNotFoundError`
+- `DuplicateEmailError`
 - `InvalidAmountError`
 - `UnsupportedCurrencyError`
 
@@ -134,24 +154,26 @@ handlers minimal so tests can assert status codes.
 
 ## Files to Create / Modify
 
-| File                              | Action                                |
-| --------------------------------- | ------------------------------------- |
-| `app/models/customer.py`          | Create                                |
-| `app/models/balance.py`           | Create                                |
-| `app/models/__init__.py`          | Modify — export models                |
-| `app/schemas/customer.py`         | Create                                |
-| `app/services/customer_service.py`| Create                                |
-| `app/api/routers/customers.py`    | Create                                |
-| `app/api/routers/__init__.py`     | Create                                |
-| `app/core/exceptions.py`          | Create — stub exception classes       |
-| `app/main.py`                     | Modify — include customers router     |
-| `alembic/versions/`               | Modify — add customers migration      |
+| File                               | Action                                |
+| ---------------------------------- | ------------------------------------- |
+| `app/models/customer.py`           | Create                                |
+| `app/models/balance.py`            | Create                                |
+| `app/models/__init__.py`           | Modify — export models                |
+| `app/schemas/customer.py`          | Create                                |
+| `app/services/customer_service.py` | Create                                |
+| `app/api/customers.py`             | Create — customer router              |
+| `app/api/__init__.py`              | Modify — aggregate routers            |
+| `app/core/exceptions.py`             | Create — stub exception classes       |
+| `app/main.py`                      | Modify — include customers router     |
+| `alembic/versions/`                | Modify — add customers migration      |
 
 ---
 
 ## Tests to Add (`tests/test_customers.py`)
 
-- `POST /api/v1/customers` returns `201` with a UUID `id`.
+- `POST /api/v1/customers` with `name` and `email` returns `201` with a UUID `id`.
+- Duplicate `email` on create returns `409`.
+- `GET /api/v1/customers` returns paginated list with `skip` and `limit`.
 - New customer has four zero balances (verify via `GET .../balances`).
 - `GET /api/v1/customers/{id}/balances` returns all four currencies.
 - `GET` with unknown `customer_id` returns `404`.
@@ -167,8 +189,9 @@ handlers minimal so tests can assert status codes.
 
 - [ ] Alembic migration applies cleanly after `01` migration
 - [ ] Customer creation atomically creates four zero balances
+- [ ] `email` is unique; duplicate create is rejected gracefully
 - [ ] Balances never go negative
-- [ ] All three endpoints work end-to-end
+- [ ] All four endpoints work end-to-end
 - [ ] All existing tests still pass
 - [ ] New customer tests pass
 - [ ] `pytest tests/ -v --cov=app` passes with no regressions
