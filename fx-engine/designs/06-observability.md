@@ -90,18 +90,18 @@ def get_health(db: Session) -> HealthResult:
     overall = "ok" if db_status == "ok" and rates_status != "unavailable" else "degraded"
 ```
 
-| `rates_age_seconds` | `rates_status`  |
-| ------------------- | --------------- |
-| `None`              | `unavailable`   |
-| < 600 (10 min)      | `fresh`         |
-| 600–3600            | `stale`         |
-| > 3600              | `unavailable`   |
+| `rates_age_seconds` | `rates_status` |
+| ------------------- | -------------- |
+| `None`              | `unavailable`  |
+| < 600 (10 min)      | `fresh`        |
+| 600–3600            | `stale`        |
+| > 3600              | `unavailable`  |
 
 Return `200` even when `status` is `degraded` (service is up but impaired).
 Return `503` only if the process cannot serve any request (e.g. DB entirely
 unreachable and check raises).
 
-Move `/healthz` handler to `app/api/routers/health.py` or keep inline in
+Move `/healthz` handler to `app/api/health.py` or keep inline in
 `main.py` — either is acceptable; prefer a dedicated router for consistency.
 
 ---
@@ -112,13 +112,13 @@ Move `/healthz` handler to `app/api/routers/health.py` or keep inline in
 
 Query DB for:
 
-| Metric                          | Source                                        |
-| ------------------------------- | --------------------------------------------- |
-| `quotes_generated_total`        | `COUNT(*)` on `quotes`                        |
-| `executions_successful_total`   | `COUNT(*)` on `transactions`                  |
-| `executions_failed_total`       | In-memory counter or `execution_failures` log |
-| `rates_last_updated`            | `MAX(fetched_at)` from `exchange_rates`       |
-| `active_quotes_count`           | `COUNT(*)` where `status=PENDING` and `expires_at > now()` |
+| Metric                        | Source                                                     |
+| ----------------------------- | ---------------------------------------------------------- |
+| `quotes_generated_total`      | `COUNT(*)` on `quotes`                                     |
+| `executions_successful_total` | `COUNT(*)` on `transactions`                               |
+| `executions_failed_total`     | In-memory counter or `execution_failures` log              |
+| `rates_last_updated`          | `MAX(fetched_at)` from `exchange_rates`                    |
+| `active_quotes_count`         | `COUNT(*)` where `status=PENDING` and `expires_at > now()` |
 
 ### `app/schemas/metrics.py`
 
@@ -131,11 +131,11 @@ class MetricsResponse(BaseModel):
     active_quotes_count: int
 ```
 
-### Router (`app/api/routers/metrics.py`)
+### Router (`app/api/metrics.py`)
 
-| Method | Path        | Status | Description     |
-| ------ | ----------- | ------ | --------------- |
-| `GET`  | `/metrics`  | `200`  | System metrics  |
+| Method | Path       | Status | Description    |
+| ------ | ---------- | ------ | -------------- |
+| `GET`  | `/metrics` | `200`  | System metrics |
 
 ---
 
@@ -143,12 +143,12 @@ class MetricsResponse(BaseModel):
 
 Audit all services and ensure domain events log with required fields:
 
-| Path / Service   | Required log fields                              |
-| ---------------- | ------------------------------------------------ |
-| Execute          | `trace_id`, `quote_id`, `customer_id`, `action`  |
-| Quote creation   | `trace_id`, `quote_id`, `customer_id`, `event`   |
-| Rate refresh     | `trace_id`, `event`, `duration_ms`               |
-| Errors           | `trace_id`, `error_code`, `event`                |
+| Path / Service | Required log fields                             |
+| -------------- | ----------------------------------------------- |
+| Execute        | `trace_id`, `quote_id`, `customer_id`, `action` |
+| Quote creation | `trace_id`, `quote_id`, `customer_id`, `event`  |
+| Rate refresh   | `trace_id`, `event`, `duration_ms`              |
+| Errors         | `trace_id`, `error_code`, `event`               |
 
 Extend `JsonFormatter` / dev formatter if new extra keys are needed.
 
@@ -161,20 +161,20 @@ Add a sample log output block to `fx-engine/README.md` showing a real
 
 ## Files to Create / Modify
 
-| File                              | Action                                |
-| --------------------------------- | ------------------------------------- |
-| `app/schemas/error.py`            | Create                                |
-| `app/schemas/health.py`           | Create                                |
-| `app/schemas/metrics.py`          | Create                                |
-| `app/core/exceptions.py`          | Modify — `AppError` base + all codes  |
-| `app/core/exception_handlers.py`  | Create                                |
-| `app/services/health_service.py`    | Create                                |
-| `app/services/metrics_service.py` | Create                                |
-| `app/api/routers/health.py`       | Create — enhanced `/healthz`          |
-| `app/api/routers/metrics.py`      | Create — `/metrics`                   |
-| `app/main.py`                     | Modify — register handlers + routers  |
-| `fx-engine/README.md`             | Modify — add example log output       |
-| `tests/test_health.py`            | Modify — assert new health fields     |
+| File                              | Action                               |
+| --------------------------------- | ------------------------------------ |
+| `app/schemas/error.py`            | Create                               |
+| `app/schemas/health.py`           | Create                               |
+| `app/schemas/metrics.py`          | Create                               |
+| `app/core/exceptions.py`          | Modify — `AppError` base + all codes |
+| `app/core/exception_handlers.py`  | Create                               |
+| `app/services/health_service.py`  | Create                               |
+| `app/services/metrics_service.py` | Create                               |
+| `app/api/health.py`               | Create — enhanced `/healthz`         |
+| `app/api/metrics.py`              | Create — `/metrics`                  |
+| `app/main.py`                     | Modify — register handlers + routers |
+| `fx-engine/README.md`             | Modify — add example log output      |
+| `tests/test_health.py`            | Modify — assert new health fields    |
 
 ---
 

@@ -1,21 +1,36 @@
 """FastAPI application entry point."""
 
+import asyncio
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import customers_router
-from app.db.session import check_db_connectivity
+from app.api import customers_router, rates_router
+from app.db.session import SessionLocal, check_db_connectivity
 from app.middlewares import RequestLoggingMiddleware, TraceIDMiddleware
+from app.services.rate_scheduler import rate_refresh_loop
+from app.services.rate_service import seed_corridor_spreads
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-    """Verify database connectivity on startup."""
+    """Verify database connectivity and start background tasks on startup."""
     check_db_connectivity()
-    yield
+    assert SessionLocal is not None
+    with SessionLocal() as db:
+        seed_corridor_spreads(db)
+
+    refresh_task = asyncio.create_task(rate_refresh_loop())
+    try:
+        yield
+    finally:
+        refresh_task.cancel()
+        try:
+            await refresh_task
+        except asyncio.CancelledError:
+            pass
 
 
 def create_app() -> FastAPI:
@@ -37,6 +52,7 @@ def create_app() -> FastAPI:
     app.add_middleware(TraceIDMiddleware)
 
     app.include_router(customers_router)
+    app.include_router(rates_router)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

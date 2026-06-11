@@ -115,10 +115,10 @@ For cross pairs: compound leg rates, expose as `effective_rate` in response.
 
 ## Schemas (`app/schemas/quote.py`)
 
-| Schema           | Fields                                                                 |
-| ---------------- | ---------------------------------------------------------------------- |
-| `QuoteCreate`    | `customer_id`, `from_currency`, `to_currency`, `amount`, `amount_side` |
-| `QuoteResponse`  | All output fields from SPEC §5; amounts/rates as strings               |
+| Schema          | Fields                                                                 |
+| --------------- | ---------------------------------------------------------------------- |
+| `QuoteCreate`   | `customer_id`, `from_currency`, `to_currency`, `amount`, `amount_side` |
+| `QuoteResponse` | All output fields from SPEC §5; amounts/rates as strings               |
 
 `amount_side`: `Literal["source", "destination"]`.
 
@@ -127,13 +127,13 @@ Response includes: `quote_id`, `routing_path`, `stale`, `expires_at`,
 
 ---
 
-## API Router (`app/api/routers/quotes.py`)
+## API Router (`app/api/quotes.py`)
 
 Prefix: `/api/v1/quotes`, tag: `quotes`.
 
-| Method | Path              | Status | Description      |
-| ------ | ----------------- | ------ | ---------------- |
-| `POST` | `/api/v1/quotes`  | `201`  | Generate a quote |
+| Method | Path             | Status | Description      |
+| ------ | ---------------- | ------ | ---------------- |
+| `POST` | `/api/v1/quotes` | `201`  | Generate a quote |
 
 Register in `app/main.py`. No execute route in this step.
 
@@ -141,16 +141,16 @@ Register in `app/main.py`. No execute route in this step.
 
 ## Files to Create / Modify
 
-| File                            | Action                              |
-| ------------------------------- | ----------------------------------- |
-| `app/models/quote.py`           | Create                              |
-| `app/schemas/quote.py`          | Create                              |
-| `app/services/routing_service.py` | Create                            |
-| `app/services/quote_service.py` | Create                              |
-| `app/api/routers/quotes.py`     | Create                              |
-| `app/core/exceptions.py`        | Modify — `RouteUnavailableError`, `RatesStaleError` |
-| `app/main.py`                   | Modify — include quotes router        |
-| `alembic/versions/`             | Modify — add quotes migration         |
+| File                              | Action                                              |
+| --------------------------------- | --------------------------------------------------- |
+| `app/models/quote.py`             | Create                                              |
+| `app/schemas/quote.py`            | Create                                              |
+| `app/services/routing_service.py` | Create                                              |
+| `app/services/quote_service.py`   | Create                                              |
+| `app/api/quotes.py`               | Create                                              |
+| `app/core/exceptions.py`          | Modify — `RouteUnavailableError`, `RatesStaleError` |
+| `app/main.py`                     | Modify — include quotes router                      |
+| `alembic/versions/`               | Modify — add quotes migration                       |
 
 ---
 

@@ -94,6 +94,8 @@ app/api/
 ├── transactions.py
 **Trade-off:** If app/api/ grows to need shared API-layer dependencies in the future, a routers/ subfolder can be introduced then. No need to add the indirection upfront.
 
+This decision is applied accross all other designs.
+
 ---
 
 ## Decisions Delegated to AI (and Verified)

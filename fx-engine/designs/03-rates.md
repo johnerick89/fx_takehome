@@ -12,7 +12,7 @@ No quote generation or execution.
 ## Prerequisites
 
 - `01 — Database` complete
-- `02 — Customers` complete (not a hard dependency, but should be merged first)
+- `02 — Customers` complete
 
 ---
 
@@ -79,8 +79,8 @@ class RateProvider(Protocol):
 
 ### Implementations
 
-| Class                    | Source                                              |
-| ------------------------ | --------------------------------------------------- |
+| Class                       | Source                                             |
+| --------------------------- | -------------------------------------------------- |
 | `OpenExchangeRatesProvider` | Primary — Open Exchange Rates free tier (USD base) |
 | `ExchangeRateApiProvider`   | Fallback — ExchangeRate-API free tier              |
 
@@ -140,12 +140,12 @@ Return age of the most recently fetched rate, or `None` if no rates exist.
 
 ### Staleness policy (SPEC §4)
 
-| Age              | `stale` | `blocked` | Behaviour for callers        |
-| ---------------- | ------- | --------- | ---------------------------- |
-| < 10 min         | `False` | `False`   | Serve normally               |
-| 10–60 min        | `True`  | `False`   | Serve with `stale: true`     |
-| > 60 min         | `True`  | `True`    | Callers return `503 RATES_STALE` |
-| No rates at all  | —       | `True`    | Callers return `503 RATES_STALE` |
+| Age             | `stale` | `blocked` | Behaviour for callers            |
+| --------------- | ------- | --------- | -------------------------------- |
+| < 10 min        | `False` | `False`   | Serve normally                   |
+| 10–60 min       | `True`  | `False`   | Serve with `stale: true`         |
+| > 60 min        | `True`  | `True`    | Callers return `503 RATES_STALE` |
+| No rates at all | —       | `True`    | Callers return `503 RATES_STALE` |
 
 ---
 
@@ -168,15 +168,15 @@ async def rate_refresh_loop(interval_seconds: int = 300) -> None:
 
 ---
 
-## API Router (`app/api/routers/rates.py`)
+## API Router (`app/api/rates.py`)
 
 Prefix: `/api/v1/rates`, tag: `rates`.
 
-| Method | Path                        | Status | Description                    |
-| ------ | --------------------------- | ------ | ------------------------------ |
-| `GET`  | `/api/v1/rates`             | `200`  | List all cached direct rates   |
-| `POST` | `/api/v1/rates/refresh`     | `200`  | Trigger manual rate refresh    |
-| `PUT`  | `/api/v1/rates/spreads/{base}/{quote}` | `200` | Update spread for a pair |
+| Method | Path                                   | Status | Description                  |
+| ------ | -------------------------------------- | ------ | ---------------------------- |
+| `GET`  | `/api/v1/rates`                        | `200`  | List all cached direct rates |
+| `POST` | `/api/v1/rates/refresh`                | `200`  | Trigger manual rate refresh  |
+| `PUT`  | `/api/v1/rates/spreads/{base}/{quote}` | `200`  | Update spread for a pair     |
 
 `GET /api/v1/rates` response includes `fetched_at`, `age_seconds`, `stale`
 flag per rate or globally.
@@ -187,31 +187,31 @@ Register router in `app/main.py`.
 
 ## Schemas (`app/schemas/rate.py`)
 
-| Schema              | Purpose                                           |
-| ------------------- | ------------------------------------------------- |
-| `RateResponse`      | `base_currency`, `quote_currency`, `mid_rate`, `buy_rate`, `sell_rate`, `fetched_at` (all rates as strings) |
-| `RateListResponse`  | `rates: list[RateResponse]`, `fetched_at`, `age_seconds`, `stale` |
-| `SpreadUpdateRequest` | `buy_spread`, `sell_spread` (strings)          |
-| `SpreadResponse`    | `base_currency`, `quote_currency`, spreads        |
+| Schema                | Purpose                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `RateResponse`        | `base_currency`, `quote_currency`, `mid_rate`, `buy_rate`, `sell_rate`, `fetched_at` (all rates as strings) |
+| `RateListResponse`    | `rates: list[RateResponse]`, `fetched_at`, `age_seconds`, `stale`                                           |
+| `SpreadUpdateRequest` | `buy_spread`, `sell_spread` (strings)                                                                       |
+| `SpreadResponse`      | `base_currency`, `quote_currency`, spreads                                                                  |
 
 ---
 
 ## Files to Create / Modify
 
-| File                              | Action                                |
-| --------------------------------- | ------------------------------------- |
-| `app/models/exchange_rate.py`     | Create                                |
-| `app/models/corridor_spread.py`   | Create                                |
-| `app/schemas/rate.py`             | Create                                |
-| `app/services/rate_providers.py`  | Create                                |
-| `app/services/rate_service.py`    | Create                                |
-| `app/services/rate_scheduler.py`  | Create                                |
-| `app/api/routers/rates.py`        | Create                                |
-| `app/core/config.py`              | Modify — add API key settings         |
-| `app/core/exceptions.py`          | Modify — add `RateProviderError`, `RatesStaleError` |
-| `app/main.py`                     | Modify — include rates router, lifespan task |
-| `alembic/versions/`               | Modify — add rates migration + seed   |
-| `.env.example`                    | Modify — add API key placeholders     |
+| File                             | Action                                              |
+| -------------------------------- | --------------------------------------------------- |
+| `app/models/exchange_rate.py`    | Create                                              |
+| `app/models/corridor_spread.py`  | Create                                              |
+| `app/schemas/rate.py`            | Create                                              |
+| `app/services/rate_providers.py` | Create                                              |
+| `app/services/rate_service.py`   | Create                                              |
+| `app/services/rate_scheduler.py` | Create                                              |
+| `app/api/rates.py`               | Create                                              |
+| `app/core/config.py`             | Modify — add API key settings                       |
+| `app/core/exceptions.py`         | Modify — add `RateProviderError`, `RatesStaleError` |
+| `app/main.py`                    | Modify — include rates router, lifespan task        |
+| `alembic/versions/`              | Modify — add rates migration + seed                 |
+| `.env.example`                   | Modify — add API key placeholders                   |
 
 ---
 

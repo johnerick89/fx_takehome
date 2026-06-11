@@ -118,21 +118,21 @@ class ExecuteResult:
 
 ## Schemas (`app/schemas/execute.py`)
 
-| Schema              | Purpose                                           |
-| ------------------- | ------------------------------------------------- |
-| `ExecuteResponse`   | SPEC §6 output fields; amounts as strings         |
+| Schema            | Purpose                                   |
+| ----------------- | ----------------------------------------- |
+| `ExecuteResponse` | SPEC §6 output fields; amounts as strings |
 
 No request body schema — `quote_id` from path, `Idempotency-Key` from header.
 
 ---
 
-## API Router (`app/api/routers/quotes.py`)
+## API Router (`app/api/quotes.py`)
 
 Add to existing quotes router:
 
-| Method | Path                                    | Status    | Description     |
-| ------ | --------------------------------------- | --------- | --------------- |
-| `POST` | `/api/v1/quotes/{quote_id}/execute`     | `201`/`200` | Execute quote |
+| Method | Path                                | Status      | Description   |
+| ------ | ----------------------------------- | ----------- | ------------- |
+| `POST` | `/api/v1/quotes/{quote_id}/execute` | `201`/`200` | Execute quote |
 
 **Headers:** `Idempotency-Key` required.
 
@@ -146,12 +146,12 @@ Missing `Idempotency-Key` → `422 MISSING_IDEMPOTENCY_KEY`.
 
 Log these events via `get_logger` with extra fields:
 
-| Event                  | Level | Extra fields                                        |
-| ---------------------- | ----- | --------------------------------------------------- |
-| `execute.started`      | INFO  | `quote_id`, `customer_id`, `idempotency_key`        |
-| `execute.success`      | INFO  | `quote_id`, `customer_id`, `debited_amount`, `credited_amount`, `duration_ms` |
-| `execute.failed`       | WARN  | `quote_id`, `customer_id`, `error_code`             |
-| `execute.idempotent_replay` | INFO | `quote_id`, `idempotency_key`                  |
+| Event                       | Level | Extra fields                                                                  |
+| --------------------------- | ----- | ----------------------------------------------------------------------------- |
+| `execute.started`           | INFO  | `quote_id`, `customer_id`, `idempotency_key`                                  |
+| `execute.success`           | INFO  | `quote_id`, `customer_id`, `debited_amount`, `credited_amount`, `duration_ms` |
+| `execute.failed`            | WARN  | `quote_id`, `customer_id`, `error_code`                                       |
+| `execute.idempotent_replay` | INFO  | `quote_id`, `idempotency_key`                                                 |
 
 `trace_id` is injected automatically by the logging filter.
 
@@ -159,16 +159,16 @@ Log these events via `get_logger` with extra fields:
 
 ## Files to Create / Modify
 
-| File                              | Action                                |
-| --------------------------------- | ------------------------------------- |
-| `app/models/transaction.py`       | Create                                |
-| `app/models/idempotency_log.py`   | Create                                |
-| `app/schemas/execute.py`          | Create                                |
-| `app/db/transaction.py`           | Create — `immediate_transaction`      |
-| `app/services/execute_service.py` | Create                                |
-| `app/api/routers/quotes.py`       | Modify — add execute endpoint         |
-| `app/core/exceptions.py`          | Modify — all execute error classes    |
-| `alembic/versions/`               | Modify — add transactions migration   |
+| File                              | Action                              |
+| --------------------------------- | ----------------------------------- |
+| `app/models/transaction.py`       | Create                              |
+| `app/models/idempotency_log.py`   | Create                              |
+| `app/schemas/execute.py`          | Create                              |
+| `app/db/transaction.py`           | Create — `immediate_transaction`    |
+| `app/services/execute_service.py` | Create                              |
+| `app/api/quotes.py`               | Modify — add execute endpoint       |
+| `app/core/exceptions.py`          | Modify — all execute error classes  |
+| `alembic/versions/`               | Modify — add transactions migration |
 
 ---
 
@@ -182,13 +182,13 @@ Log these events via `get_logger` with extra fields:
 
 ### Invariant tests
 
-| Scenario                          | Expected                          |
-| --------------------------------- | --------------------------------- |
-| Expired quote                     | `422 QUOTE_EXPIRED`               |
-| Already executed quote            | `409 QUOTE_ALREADY_EXECUTED`      |
-| Unknown quote                     | `404 QUOTE_NOT_FOUND`             |
-| Insufficient balance              | `422 INSUFFICIENT_BALANCE`        |
-| Missing `Idempotency-Key` header  | `422 MISSING_IDEMPOTENCY_KEY`     |
+| Scenario                         | Expected                      |
+| -------------------------------- | ----------------------------- |
+| Expired quote                    | `422 QUOTE_EXPIRED`           |
+| Already executed quote           | `409 QUOTE_ALREADY_EXECUTED`  |
+| Unknown quote                    | `404 QUOTE_NOT_FOUND`         |
+| Insufficient balance             | `422 INSUFFICIENT_BALANCE`    |
+| Missing `Idempotency-Key` header | `422 MISSING_IDEMPOTENCY_KEY` |
 
 ### Idempotency tests
 

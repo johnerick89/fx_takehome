@@ -24,3 +24,15 @@ class InvalidAmountError(AppError):
 
 class UnsupportedCurrencyError(AppError):
     """Raised when a currency code is not supported."""
+
+
+class RateProviderError(AppError):
+    """Raised when an external rate provider fails."""
+
+
+class RatesStaleError(AppError):
+    """Raised when cached rates are too old to use."""
+
+
+class SpreadNotFoundError(AppError):
+    """Raised when no spread configuration exists for a pair."""
