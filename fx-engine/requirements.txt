@@ -1,0 +1,11 @@
+fastapi[standard]
+sqlalchemy
+alembic
+pydantic
+pydantic-settings
+pytest
+pytest-asyncio
+pytest-cov
+httpx
+hypothesis
+python-dotenv
