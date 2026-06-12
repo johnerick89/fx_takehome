@@ -269,24 +269,24 @@ All error responses follow this shape:
 }
 ```
 
-| Error Code                 | HTTP Status | Meaning                                                | Exception class              |
-| -------------------------- | ----------- | ------------------------------------------------------ | ---------------------------- |
-| `QUOTE_EXPIRED`            | 422         | Quote TTL elapsed                                      | `QuoteExpiredError`          |
-| `QUOTE_ALREADY_EXECUTED`   | 409         | Quote already used                                     | `QuoteAlreadyExecutedError`  |
-| `QUOTE_NOT_FOUND`          | 404         | Unknown quote ID                                       | `QuoteNotFoundError`         |
-| `INSUFFICIENT_BALANCE`     | 422         | Not enough source balance                              | `InsufficientBalanceError`   |
-| `RATES_STALE`              | 503         | Cached rates too old                                   | `RatesStaleError`            |
-| `ROUTE_UNAVAILABLE`        | 422         | No routing path for pair                               | `RouteUnavailableError`      |
-| `CUSTOMER_NOT_FOUND`       | 404         | Unknown customer ID                                    | `CustomerNotFoundError`      |
-| `IDEMPOTENCY_KEY_CONFLICT` | 422         | Key reused for different quote                         | `IdempotencyKeyConflictError`|
-| `MISSING_IDEMPOTENCY_KEY`  | 422         | `Idempotency-Key` header absent or invalid on execute  | `MissingIdempotencyKeyError` |
-| `INVALID_AMOUNT`           | 422         | Amount ≤ 0, non-numeric, or request validation failure   | `InvalidAmountError`         |
-| `INTERNAL_ERROR`           | 500         | Unexpected server fault                                | `AppError` / `RateProviderError` |
-| `INVALID_CURRENCY_PAIR`    | 422         | Invalid currency pair in quotes (source == destination)| `InvalidCurrencyPairError`   |
-| `DUPLICATE_EMAIL`          | 409         | Customer email already registered                      | `DuplicateEmailError`        |
-| `UNSUPPORTED_CURRENCY`     | 422         | Currency code not in supported set                     | `UnsupportedCurrencyError`   |
-| `SPREAD_NOT_FOUND`         | 404         | No spread configuration for pair                       | `SpreadNotFoundError`        |
-| `TRANSACTION_NOT_FOUND`    | 404         | Unknown transaction ID                                 | `TransactionNotFoundError`   |
+| Error Code                 | HTTP Status | Meaning                                                 | Exception class                  |
+| -------------------------- | ----------- | ------------------------------------------------------- | -------------------------------- |
+| `QUOTE_EXPIRED`            | 422         | Quote TTL elapsed                                       | `QuoteExpiredError`              |
+| `QUOTE_ALREADY_EXECUTED`   | 409         | Quote already used                                      | `QuoteAlreadyExecutedError`      |
+| `QUOTE_NOT_FOUND`          | 404         | Unknown quote ID                                        | `QuoteNotFoundError`             |
+| `INSUFFICIENT_BALANCE`     | 422         | Not enough source balance                               | `InsufficientBalanceError`       |
+| `RATES_STALE`              | 503         | Cached rates too old                                    | `RatesStaleError`                |
+| `ROUTE_UNAVAILABLE`        | 422         | No routing path for pair                                | `RouteUnavailableError`          |
+| `CUSTOMER_NOT_FOUND`       | 404         | Unknown customer ID                                     | `CustomerNotFoundError`          |
+| `IDEMPOTENCY_KEY_CONFLICT` | 422         | Key reused for different quote                          | `IdempotencyKeyConflictError`    |
+| `MISSING_IDEMPOTENCY_KEY`  | 422         | `Idempotency-Key` header absent or invalid on execute   | `MissingIdempotencyKeyError`     |
+| `INVALID_AMOUNT`           | 422         | Amount ≤ 0, non-numeric, or request validation failure  | `InvalidAmountError`             |
+| `INTERNAL_ERROR`           | 500         | Unexpected server fault                                 | `AppError` / `RateProviderError` |
+| `INVALID_CURRENCY_PAIR`    | 422         | Invalid currency pair in quotes (source == destination) | `InvalidCurrencyPairError`       |
+| `DUPLICATE_EMAIL`          | 409         | Customer email already registered                       | `DuplicateEmailError`            |
+| `UNSUPPORTED_CURRENCY`     | 422         | Currency code not in supported set                      | `UnsupportedCurrencyError`       |
+| `SPREAD_NOT_FOUND`         | 404         | No spread configuration for pair                        | `SpreadNotFoundError`            |
+| `TRANSACTION_NOT_FOUND`    | 404         | Unknown transaction ID                                  | `TransactionNotFoundError`       |
 
 All exception classes live in `app/core/exceptions.py` and are mapped to structured
 error responses via `app/core/exception_handlers.py`.

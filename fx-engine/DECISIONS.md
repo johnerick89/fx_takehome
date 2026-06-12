@@ -192,4 +192,38 @@ This makes losing connections wait up to 5s for the lock, then proceed to read t
 
 ## What I Would Do With Another Day
 
-_To be updated after implementation is complete._
+### Observability & Operations
+
+- Prometheus-compatible /metrics text format alongside JSON (current implementation is JSON-only per spec)
+- External APM integration (Sentry/Datadog) for error aggregation
+- Distributed tracing (OpenTelemetry) to trace requests across the rate-fetch background task and execute path
+- Request/response body logging (redacted) for debugging support tickets
+
+### Security & Access Control
+
+- Authentication/authorization across all endpoints (explicitly out of scope per assignment, but the obvious next step for production)
+- Auth on /metrics and /healthz specifically — currently open by design for this exercise
+- Rate limiting on quote generation and execute endpoints to prevent abuse
+
+### API Completeness
+
+- `GET /api/v1/quotes` — list/filter quotes by customer, status, date range (useful for audit trails, not needed for the core execute flow)
+- `GET /api/v1/transactions` — list endpoint (currently only GET /{id} exists)
+- Pagination on customer balance history / transaction history
+
+### Metrics & Dashboards
+
+- Richer /metrics data: per-currency-pair volume, average quote-to-execute conversion rate, idempotency replay rate
+- A small operational dashboard (even a static HTML page hitting /metrics) for at-a-glance system health
+
+### Known Edge Cases / Hardening
+
+- Dedicated error code for oversized Idempotency-Key (currently folded into MISSING_IDEMPOTENCY_KEY)
+- Dedicated VALIDATION_ERROR code for non-amount Pydantic boundary errors (currently all map to INVALID_AMOUNT)
+- Distinguish "balance row missing" (data integrity bug → 500) from "insufficient funds" (business case → 422) in execute_service
+- RateProviderError currently shares INTERNAL_ERROR with genuine bugs — add a dedicated code if it can reach the API boundary
+
+### Scale & Persistence
+
+- Migrate from SQLite to Postgres for genuine concurrent write throughput (SQLite's BEGIN IMMEDIATE serializes all writes — fine for this exercise, a bottleneck at scale)
+- Connection pooling configuration for Postgres
