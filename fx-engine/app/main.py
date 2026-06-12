@@ -7,7 +7,14 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import customers_router, quotes_router, rates_router, transactions_router
+from app.api import (
+    customers_router,
+    health_router,
+    metrics_router,
+    quotes_router,
+    rates_router,
+    transactions_router,
+)
 from app.core.exception_handlers import register_exception_handlers
 from app.db.session import SessionLocal, check_db_connectivity
 from app.middlewares import RequestLoggingMiddleware, TraceIDMiddleware
@@ -53,15 +60,12 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(TraceIDMiddleware)
 
+    app.include_router(health_router)
+    app.include_router(metrics_router)
     app.include_router(customers_router)
     app.include_router(rates_router)
     app.include_router(quotes_router)
     app.include_router(transactions_router)
-
-    @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        """Return application health status."""
-        return {"status": "ok"}
 
     return app
 

@@ -27,6 +27,7 @@ from app.models.idempotency_log import IdempotencyLog
 from app.models.quote import Quote, QuoteStatus
 from app.models.transaction import Transaction
 from app.schemas.execute import ExecuteResponse
+from app.services.metrics_service import increment_executions_failed
 
 logger = get_logger(__name__)
 
@@ -132,6 +133,7 @@ def _load_idempotency_replay(
         "execute.idempotent_replay",
         extra={
             "event": "execute.idempotent_replay",
+            "action": "replay",
             "quote_id": quote_id,
             "idempotency_key": idempotency_key,
         },
@@ -186,6 +188,7 @@ def execute_quote(db: Session, quote_id: str, idempotency_key: str | None) -> Ex
                 "execute.started",
                 extra={
                     "event": "execute.started",
+                    "action": "execute",
                     "quote_id": quote_id,
                     "customer_id": quote.customer_id,
                     "idempotency_key": validated_key,
@@ -229,12 +232,13 @@ def execute_quote(db: Session, quote_id: str, idempotency_key: str | None) -> Ex
             return replay_after_conflict
         raise exc
     except AppError as exc:
+        increment_executions_failed()
         logger.warning(
             "execute.failed",
             extra={
                 "event": "execute.failed",
+                "action": "execute",
                 "quote_id": quote_id,
-                "customer_id": getattr(exc, "customer_id", None),
                 "error_code": exc.error_code,
             },
         )
@@ -245,6 +249,7 @@ def execute_quote(db: Session, quote_id: str, idempotency_key: str | None) -> Ex
         "execute.success",
         extra={
             "event": "execute.success",
+            "action": "execute",
             "quote_id": quote_id,
             "customer_id": transaction.customer_id,
             "debited_amount": str(transaction.debited_amount),

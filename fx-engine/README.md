@@ -70,6 +70,7 @@ Every response includes an `X-Trace-ID` header (generated or client-supplied).
 | `POST` | `/api/v1/quotes`                            | Generate FX quote              |
 | `POST` | `/api/v1/quotes/{quote_id}/execute`          | Execute quote (`Idempotency-Key` header required) |
 | `GET`  | `/api/v1/transactions/{transaction_id}`      | Fetch completed transaction    |
+| `GET`  | `/healthz`                                  | Health check (DB + rates status) |
 | `GET`  | `/metrics`                                  | System metrics (JSON)          |
 
 ---
@@ -82,11 +83,31 @@ Registered in `app/main.py` (outermost → innermost):
 2. **TraceIDMiddleware** — sets `X-Trace-ID` on every request/response
 3. **CORSMiddleware** — allows all origins (tighten in production)
 
-### Example log output (development)
+### Example log output
+
+Development (human-readable):
 
 ```
 INFO  [trace_id=abc123] → GET /healthz
 INFO  [trace_id=abc123] ← 200 GET /healthz 4ms
+INFO  [trace_id=def456] execute.success
+```
+
+Production (`APP_ENV=production`, JSON):
+
+```json
+{
+  "timestamp": "2024-01-15T12:00:45.123456+00:00",
+  "level": "INFO",
+  "trace_id": "def456",
+  "event": "execute.success",
+  "action": "execute",
+  "quote_id": "550e8400-e29b-41d4-a716-446655440000",
+  "customer_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "debited_amount": "10000.00",
+  "credited_amount": "77.54",
+  "duration_ms": 12
+}
 ```
 
 ---
@@ -136,7 +157,7 @@ fx-engine/
 pytest tests/ -v --cov=app
 ```
 
-Test suites: health, middleware, logging, database.
+Test suites: health, metrics, errors, middleware, logging, database, customers, rates, quotes, execute.
 
 ---
 
@@ -151,4 +172,4 @@ Test suites: health, middleware, logging, database.
 | 03   | Rates         | Not started |
 | 04   | Quotes        | Complete    |
 | 05   | Execute       | Complete    |
-| 06   | Observability | Not started |
+| 06   | Observability | Complete    |

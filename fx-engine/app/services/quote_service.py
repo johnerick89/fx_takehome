@@ -16,9 +16,11 @@ from app.core.exceptions import (
 )
 from app.models.customer import Customer
 from app.models.quote import Quote, QuoteStatus
+from app.core.logging import get_logger
 from app.services.routing_service import RoutingResult, resolve_route
 
 QUOTE_TTL_SECONDS = 60
+logger = get_logger(__name__)
 
 
 def _quantize_amount(amount: Decimal, currency: str) -> Decimal:
@@ -139,4 +141,13 @@ def create_quote(
 
     db.commit()
     db.refresh(quote)
+    logger.info(
+        "quote.created",
+        extra={
+            "event": "quote.created",
+            "action": "create",
+            "quote_id": quote.id,
+            "customer_id": customer_id,
+        },
+    )
     return quote

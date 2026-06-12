@@ -1,5 +1,6 @@
 """Exchange rate caching, spread application, and staleness policy."""
 
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -73,6 +74,7 @@ def build_pair_rates(usd_quotes: dict[str, Decimal]) -> dict[tuple[str, str], De
 
 def refresh_rates(db: Session, providers: list[RateProvider] | None = None) -> None:
     """Fetch rates from external providers and upsert the local cache."""
+    started_at = time.perf_counter()
     provider_list = providers if providers is not None else get_rate_providers()
     last_error: Exception | None = None
 
@@ -85,9 +87,14 @@ def refresh_rates(db: Session, providers: list[RateProvider] | None = None) -> N
             pair_rates = build_pair_rates(usd_quotes)
             fetched_at = datetime.now(UTC)
             _upsert_rates(db, pair_rates, fetched_at)
+            duration_ms = int((time.perf_counter() - started_at) * 1000)
             logger.info(
                 "rates.refresh.success",
-                extra={"event": "rates.refresh.success", "pairs": len(pair_rates)},
+                extra={
+                    "event": "rates.refresh.success",
+                    "pairs": len(pair_rates),
+                    "duration_ms": duration_ms,
+                },
             )
             return
         except (RateProviderError, Exception) as exc:

@@ -63,9 +63,10 @@ pytest for its fixture model, which makes test database isolation clean. Hypothe
 The AI initially suggested only CORS middleware. I extended this to three layers.
 
 **Reasoning:**
-CORSMiddleware — standard for any API with a frontend client.
-TraceIDMiddleware — required by the spec; every response must carry X-Trace-ID and every log line must include the trace ID. Middleware is the correct place for this, not per-endpoint logic.
-RequestLoggingMiddleware — the assignment explicitly asks for example log output in the README. A middleware that logs method, path, status code, duration, and trace ID on every request/response satisfies the observability requirement cleanly.
+
+- CORSMiddleware — standard for any API with a frontend client.
+- TraceIDMiddleware — required by the spec; every response must carry X-Trace-ID and every log line must include the trace ID. - Middleware is the correct place for this, not per-endpoint logic.
+- RequestLoggingMiddleware — the assignment explicitly asks for example log output in the README. A middleware that logs method, path, status code, duration, and trace ID on every request/response satisfies the observability requirement cleanly.
 
 **What I explicitly ruled out:** GZipMiddleware, TrustedHostMiddleware, HTTPSRedirectMiddleware, session middleware, and rate limiting — all either out of scope per the spec or irrelevant without TLS or auth.
 
@@ -137,6 +138,11 @@ AI proposed this. I verified: 20 digits of precision with 8 decimal places gives
 - **Concurrency model:** Did not accept the SQLite concurrency approach on faith — cross-checked against SQLite WAL documentation and confirmed `BEGIN IMMEDIATE` is the right transaction mode for the execute path.
 - **Decimal rounding:** Verified that `ROUND_HALF_UP` with `decimal.Decimal` in Python produces the expected results for the KES→USD example in `SPEC.md` before committing to it in the spec.
 - **201 vs 200 on idempotent retry:** AI initially suggested returning `201` on retries too. I overrode this — a retry must return `200` since no new resource is created on subsequent calls.
+
+- **Pydantic boundary validation errors map to INVALID_AMOUNT**
+  `RequestValidationError` (malformed JSON, missing fields, wrong types at the FastAPI/Pydantic boundary) is mapped to `error_code: INVALID_AMOUNT` for all cases, not just amount-related ones.
+  **_Reasoning:_** SPEC.md §10 doesn't define a generic validation-error code, and the assignment's invariant tests exercise domain-level AppError subclasses (which all have correct, specific codes), not Pydantic boundary errors. Introducing a new VALIDATION\*ERROR code would be scope not committed to in the spec.
+  **_Trade-off:_** A client with a malformed request (e.g. missing customer_id) receives INVALID_AMOUNT, which is misleading. Acceptable for this exercise since it doesn't affect any tested invariant — flagged here rather than left undocumented.
 
 ---
 

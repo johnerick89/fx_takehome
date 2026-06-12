@@ -13,6 +13,7 @@ exception handlers. After this step the system meets SPEC §10 and §11 in full.
 - `00 — App Scaffolding` complete (basic `/healthz`)
 - `00_1 — Middleware` complete (trace ID + request logging)
 - `01 — Database` complete
+- `02 - Customers` complete
 - `03 — Rates` complete
 - `04 — Quotes` complete
 - `05 — Execute` complete

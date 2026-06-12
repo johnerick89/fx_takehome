@@ -24,7 +24,20 @@ class TraceIDFilter(logging.Filter):
 class JsonFormatter(logging.Formatter):
     """Emit structured JSON log lines for non-development environments."""
 
-    _EXTRA_KEYS = ("event", "method", "path", "status_code", "duration_ms")
+    _EXTRA_KEYS = (
+        "event",
+        "method",
+        "path",
+        "status_code",
+        "duration_ms",
+        "quote_id",
+        "customer_id",
+        "debited_amount",
+        "credited_amount",
+        "error_code",
+        "action",
+        "idempotency_key",
+    )
 
     def format(self, record: logging.LogRecord) -> str:
         """Format a log record as a JSON object."""

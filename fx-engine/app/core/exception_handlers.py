@@ -33,12 +33,17 @@ def _error_response(
     status_code: int,
 ) -> JSONResponse:
     """Build a SPEC §10 error JSON response."""
+    trace_id = _trace_id_for_request(request)
     body = ErrorResponse(
         error_code=error_code,
         message=message,
-        trace_id=_trace_id_for_request(request),
+        trace_id=trace_id,
     )
-    return JSONResponse(status_code=status_code, content=body.model_dump())
+    return JSONResponse(
+        status_code=status_code,
+        content=body.model_dump(),
+        headers={"X-Trace-ID": trace_id},
+    )
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
