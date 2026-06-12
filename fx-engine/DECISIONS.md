@@ -171,6 +171,19 @@ updated_at: Mapped[datetime] = mapped_column(
 )
 ```
 
+### 3. PRAGMA busy_timeout is missing
+
+`BEGIN IMMEDIATE` acquires a write lock, but SQLite's default behavior when a second connection tries to acquire that lock is to immediately raise `SQLITE_BUSY`, not wait. Without `PRAGMA busy_timeout = <ms>` set on the connection , your concurrency test won't produce clean 409s — it'll produce raw `OperationalError: database is locked` exceptions (likely surfacing as 500s) for the concurrent requests that lose the race.
+
+**Fix applied:**
+Add to app/db/session.py's connect listener:
+
+```sql
+PRAGMA busy_timeout = 5000;
+```
+
+This makes losing connections wait up to 5s for the lock, then proceed to read the now-committed quote state and correctly return 409. This should really be called out in 01-database.md but flag it here since it's existential for this module's concurrency test.
+
 ## What I Would Do With Another Day
 
 _To be updated after implementation is complete._

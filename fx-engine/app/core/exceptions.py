@@ -116,3 +116,10 @@ class MissingIdempotencyKeyError(AppError):
 
     error_code = "MISSING_IDEMPOTENCY_KEY"
     http_status = 422
+
+
+class TransactionNotFoundError(AppError):
+    """Raised when a transaction ID does not exist."""
+
+    error_code = "TRANSACTION_NOT_FOUND"
+    http_status = 404

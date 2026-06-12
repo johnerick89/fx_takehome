@@ -96,7 +96,14 @@ id: Mapped[str] = mapped_column(
 ```sql
 PRAGMA journal_mode=WAL;
 PRAGMA foreign_keys=ON;
+PRAGMA busy_timeout=5000;
 ```
+
+`busy_timeout` makes connections wait up to 5 seconds for a write lock instead
+of immediately raising `SQLITE_BUSY`. Required for execute-path concurrency
+(see `05-execute.md`) — without it, losing parallel requests surface raw
+`OperationalError: database is locked` (likely `500`) instead of clean
+`409 QUOTE_ALREADY_EXECUTED`.
 
 - Export `SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)`.
 - Export `get_db()` generator dependency for FastAPI:
@@ -204,6 +211,7 @@ Use an isolated test database (`sqlite:///:memory:` or a temp file) via
 
 - [ ] `alembic upgrade head` runs without errors
 - [ ] `PRAGMA journal_mode` is `wal` on every connection
+- [ ] `PRAGMA busy_timeout` is `5000` on every connection
 - [ ] `get_db()` works as a FastAPI dependency
 - [ ] App starts and passes DB connectivity check on startup
 - [ ] All existing tests still pass

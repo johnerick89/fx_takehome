@@ -69,6 +69,7 @@ Every response includes an `X-Trace-ID` header (generated or client-supplied).
 | `POST` | `/api/v1/rates/refresh`                     | Trigger rate refresh           |
 | `POST` | `/api/v1/quotes`                            | Generate FX quote              |
 | `POST` | `/api/v1/quotes/{quote_id}/execute`          | Execute quote (`Idempotency-Key` header required) |
+| `GET`  | `/api/v1/transactions/{transaction_id}`      | Fetch completed transaction    |
 | `GET`  | `/metrics`                                  | System metrics (JSON)          |
 
 ---
@@ -95,6 +96,7 @@ INFO  [trace_id=abc123] ← 200 GET /healthz 4ms
 - **Engine:** SQLAlchemy 2.x, sync sessions
 - **Database:** SQLite (`fx.db` by default)
 - **WAL mode:** enabled on every connection (`PRAGMA journal_mode=WAL`)
+- **Busy timeout:** `PRAGMA busy_timeout=5000` for execute-path concurrency
 - **Migrations:** Alembic (`alembic/`)
 - **Base model:** UUID primary keys (Python-side `uuid.uuid4()`), `created_at` / `updated_at` timestamps
 
@@ -148,5 +150,5 @@ Test suites: health, middleware, logging, database.
 | 02   | Customers     | Not started |
 | 03   | Rates         | Not started |
 | 04   | Quotes        | Complete    |
-| 05   | Execute       | Not started |
+| 05   | Execute       | Complete    |
 | 06   | Observability | Not started |

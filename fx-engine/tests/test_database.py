@@ -49,6 +49,13 @@ def test_journal_mode_is_wal(isolated_db: str) -> None:
         assert str(journal_mode).lower() == "wal"
 
 
+def test_busy_timeout_is_configured(isolated_db: str) -> None:
+    """SQLite connections wait for write locks instead of failing immediately."""
+    with db_session.get_engine().connect() as connection:
+        busy_timeout = connection.execute(text("PRAGMA busy_timeout")).scalar_one()
+        assert int(busy_timeout) == 5000
+
+
 def test_get_db_yields_session(isolated_db: str) -> None:
     """get_db dependency yields a usable session and closes cleanly."""
     generator = db_session.get_db()
