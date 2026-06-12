@@ -29,10 +29,12 @@ automatically — run `alembic upgrade head` manually after pulling schema chang
 
 ## Environment variables
 
-| Variable        | Default                  | Description                                      |
-| --------------- | ------------------------ | ------------------------------------------------ |
-| `APP_ENV`       | `development`            | `development` → human-readable logs; else JSON   |
-| `DATABASE_URL`  | `sqlite:///./fx.db`      | SQLAlchemy database URL (SQLite in development)  |
+| Variable                     | Default             | Description                                     |
+| ---------------------------- | ------------------- | ----------------------------------------------- |
+| `APP_ENV`                    | `development`       | `development` → human-readable logs; else JSON  |
+| `DATABASE_URL`               | `sqlite:///./fx.db` | SQLAlchemy database URL (SQLite in development) |
+| `OPEN_EXCHANGE_RATES_APP_ID` | —                   | Primary rate provider (Open Exchange Rates)     |
+| `EXCHANGE_RATE_API_KEY`      | —                   | Fallback rate provider (ExchangeRate-API)       |
 
 ---
 
@@ -40,38 +42,37 @@ automatically — run `alembic upgrade head` manually after pulling schema chang
 
 FastAPI serves interactive docs out of the box (only available while the app is running):
 
-| URL                 | Description              |
-| ------------------- | ------------------------ |
-| `/docs`             | Swagger UI               |
-| `/redoc`            | ReDoc                    |
-| `/openapi.json`     | OpenAPI 3 schema (JSON)  |
+| URL             | Description             |
+| --------------- | ----------------------- |
+| `/docs`         | Swagger UI              |
+| `/redoc`        | ReDoc                   |
+| `/openapi.json` | OpenAPI 3 schema (JSON) |
 
 ---
 
 ## Endpoints
 
-### Implemented
+All routes below are implemented. See [`SPEC.md`](SPEC.md) for request/response
+shapes and error semantics.
 
-| Method | Path        | Description                                      |
-| ------ | ----------- | ------------------------------------------------ |
-| `GET`  | `/healthz`  | Health check — returns `{"status": "ok"}`        |
+| Method | Path                                     | Description                                       |
+| ------ | ---------------------------------------- | ------------------------------------------------- |
+| `GET`  | `/healthz`                               | Health check (DB connectivity + rates freshness)  |
+| `GET`  | `/metrics`                               | System metrics (JSON)                             |
+| `POST` | `/api/v1/customers`                      | Create customer                                   |
+| `GET`  | `/api/v1/customers`                      | List customers (paginated)                        |
+| `GET`  | `/api/v1/customers/{id}/balances`        | View balances                                     |
+| `POST` | `/api/v1/customers/{id}/balances/credit` | Credit balance (test fixture)                     |
+| `GET`  | `/api/v1/rates`                          | List cached exchange rates                        |
+| `POST` | `/api/v1/rates/refresh`                  | Trigger rate refresh                              |
+| `PUT`  | `/api/v1/rates/spreads/{base}/{quote}`   | Update corridor spread                            |
+| `POST` | `/api/v1/quotes`                         | Generate FX quote                                 |
+| `POST` | `/api/v1/quotes/{quote_id}/execute`      | Execute quote (`Idempotency-Key` header required) |
+| `GET`  | `/api/v1/transactions/{transaction_id}`  | Fetch completed transaction                       |
 
 Every response includes an `X-Trace-ID` header (generated or client-supplied).
-
-### Planned (see `SPEC.md` and `designs/`)
-
-| Method | Path                                        | Description                    |
-| ------ | ------------------------------------------- | ------------------------------ |
-| `POST` | `/api/v1/customers`                         | Create customer                |
-| `GET`  | `/api/v1/customers/{id}/balances`           | View balances                  |
-| `POST` | `/api/v1/customers/{id}/balances/credit`    | Credit balance (test fixture)  |
-| `GET`  | `/api/v1/rates`                             | List cached exchange rates     |
-| `POST` | `/api/v1/rates/refresh`                     | Trigger rate refresh           |
-| `POST` | `/api/v1/quotes`                            | Generate FX quote              |
-| `POST` | `/api/v1/quotes/{quote_id}/execute`          | Execute quote (`Idempotency-Key` header required) |
-| `GET`  | `/api/v1/transactions/{transaction_id}`      | Fetch completed transaction    |
-| `GET`  | `/healthz`                                  | Health check (DB + rates status) |
-| `GET`  | `/metrics`                                  | System metrics (JSON)          |
+Error responses use the structured envelope in SPEC §10 (`error_code`, `message`,
+`trace_id`).
 
 ---
 
@@ -81,7 +82,7 @@ Registered in `app/main.py` (outermost → innermost):
 
 1. **RequestLoggingMiddleware** — logs method, path, status, duration, trace ID
 2. **TraceIDMiddleware** — sets `X-Trace-ID` on every request/response
-3. **CORSMiddleware** — allows all origins (tighten in production)
+3. **CORSMiddleware** — allows all origins
 
 ### Example log output
 
@@ -163,13 +164,26 @@ Test suites: health, metrics, errors, middleware, logging, database, customers, 
 
 ## Implementation status
 
-| Step | Module        | Status      |
-| ---- | ------------- | ----------- |
-| 00   | Scaffolding   | Done        |
-| 00_1 | Middleware    | Done        |
-| 01   | Database      | Done        |
-| 02   | Customers     | Not started |
-| 03   | Rates         | Not started |
-| 04   | Quotes        | Complete    |
-| 05   | Execute       | Complete    |
-| 06   | Observability | Complete    |
+All design modules are **complete**.
+
+| Step | Module        | Status   |
+| ---- | ------------- | -------- |
+| 00   | Scaffolding   | Complete |
+| 00_1 | Middleware    | Complete |
+| 01   | Database      | Complete |
+| 02   | Customers     | Complete |
+| 03   | Rates         | Complete |
+| 04   | Quotes        | Complete |
+| 05   | Execute       | Complete |
+| 06   | Observability | Complete |
+
+### Assignment requirements
+
+| Requirement                                | Status | Evidence                                               |
+| ------------------------------------------ | ------ | ------------------------------------------------------ |
+| Decimal precision + property tests         | Done   | `SPEC.md` §3, `tests/test_quotes_properties.py`        |
+| Concurrency safety on execute              | Done   | `tests/test_execute.py`                                |
+| Idempotency on execute                     | Done   | `tests/test_execute.py`                                |
+| Atomic two-leg execution + rollback        | Done   | `tests/test_execute.py`                                |
+| Rate-source failure handling               | Done   | `SPEC.md` §4, `tests/test_rates.py`                    |
+| Observability (health, metrics, trace IDs) | Done   | `/healthz`, `/metrics`, middleware, log examples above |
