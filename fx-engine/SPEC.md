@@ -376,14 +376,14 @@ The rates fetch background task must never crash the application on failure — 
 The assignment leaves several details unspecified. Reasonable assumptions made for
 this implementation:
 
-| Topic | Assumption |
-| ----- | ---------- |
-| **Customer identity** | `Customer` has `name` and unique `email` as the minimum viable identifier. No KYC fields. `email` is the natural lookup key; duplicate emails return `409 DUPLICATE_EMAIL`. |
-| **Quote input** | Quotes require `customer_id`. `amount` is always a positive decimal string. `amount_side` (`source` \| `destination`) controls whether the amount is debited or credited currency. |
-| **Quote vs balance** | Generating a quote does not reserve or lock funds. Insufficient balance is only checked at execute time. |
-| **Cross-pair routing** | Pairs without a direct rate route via USD or EUR (whichever hub yields a valid two-leg path). Spreads compound multiplicatively per leg using the adverse side for each conversion direction. |
-| **Rate providers** | Primary: Open Exchange Rates (USD base). Fallback: ExchangeRate-API. If both fail, serve cached rates when age &lt; 60 minutes; otherwise reject quotes with `503 RATES_STALE`. |
-| **Persistence** | SQLite with WAL + `BEGIN IMMEDIATE` on execute. Sufficient to demonstrate concurrency invariants; not chosen for production throughput. |
-| **Idempotency HTTP semantics** | First successful execute → `201 Created` + `Location` header. Idempotent replay with the same key → `200 OK` with the original body. |
-| **Validation errors** | All Pydantic request-validation failures map to `422 INVALID_AMOUNT` at the API boundary. A dedicated `VALIDATION_ERROR` code is deferred. |
-| **Concurrency evidence** | Parallel execute safety is demonstrated by a pytest `ThreadPoolExecutor` test (8 workers → 1×201, 7×409), not a standalone load-test script. |
+| Topic                          | Assumption                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Customer identity**          | `Customer` has `name` and unique `email` as the minimum viable identifier. No KYC fields. `email` is the natural lookup key; duplicate emails return `409 DUPLICATE_EMAIL`.                   |
+| **Quote input**                | Quotes require `customer_id`. `amount` is always a positive decimal string. `amount_side` (`source` \| `destination`) controls whether the amount is debited or credited currency.            |
+| **Quote vs balance**           | Generating a quote does not reserve or lock funds. Insufficient balance is only checked at execute time.                                                                                      |
+| **Cross-pair routing**         | Pairs without a direct rate route via USD or EUR (whichever hub yields a valid two-leg path). Spreads compound multiplicatively per leg using the adverse side for each conversion direction. |
+| **Rate providers**             | Primary: Open Exchange Rates (USD base). Fallback: ExchangeRate-API. If both fail, serve cached rates when age &lt; 60 minutes; otherwise reject quotes with `503 RATES_STALE`.               |
+| **Persistence**                | SQLite with WAL + `BEGIN IMMEDIATE` on execute. Sufficient to demonstrate concurrency invariants; not chosen for production throughput.                                                       |
+| **Idempotency HTTP semantics** | First successful execute → `201 Created` + `Location` header. Idempotent replay with the same key → `200 OK` with the original body.                                                          |
+| **Validation errors**          | All Pydantic request-validation failures map to `422 INVALID_AMOUNT` at the API boundary. A dedicated `VALIDATION_ERROR` code is deferred.                                                    |
+| **Concurrency evidence**       | Parallel execute safety is demonstrated by a pytest `ThreadPoolExecutor` test (8 workers → 1×201, 7×409), not a standalone load-test script.                                                  |

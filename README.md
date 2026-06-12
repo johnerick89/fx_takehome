@@ -44,7 +44,7 @@ Access the fx-engine readme here: [`fx-engine/README.md`](fx-engine/README.md)
 
 ## Process notes
 
-- **Spec-first:** `SPEC.md` and `designs/` were written before prompting the agent
+- **Spec-first:** `SPEC.md` and initial `designs/` were written before prompting the agent
   on each module.
 - **Verification:** I did not trust concurrency, idempotency, or decimal paths
   without running tests — several AI suggestions were overridden (see
