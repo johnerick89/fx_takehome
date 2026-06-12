@@ -269,19 +269,20 @@ All error responses follow this shape:
 }
 ```
 
-| Error Code                 | HTTP Status | Meaning                                    |
-| -------------------------- | ----------- | ------------------------------------------ |
-| `QUOTE_EXPIRED`            | 422         | Quote TTL elapsed                          |
-| `QUOTE_ALREADY_EXECUTED`   | 409         | Quote already used                         |
-| `QUOTE_NOT_FOUND`          | 404         | Unknown quote ID                           |
-| `INSUFFICIENT_BALANCE`     | 422         | Not enough source balance                  |
-| `RATES_STALE`              | 503         | Cached rates too old                       |
-| `ROUTE_UNAVAILABLE`        | 422         | No routing path for pair                   |
-| `CUSTOMER_NOT_FOUND`       | 404         | Unknown customer ID                        |
-| `IDEMPOTENCY_KEY_CONFLICT` | 422         | Key reused for different quote             |
-| `MISSING_IDEMPOTENCY_KEY`  | 422         | `Idempotency-Key` header absent on execute |
-| `INVALID_AMOUNT`           | 422         | Amount ≤ 0 or non-numeric                  |
-| `INTERNAL_ERROR`           | 500         | Unexpected server fault                    |
+| Error Code                 | HTTP Status | Meaning                                                |
+| -------------------------- | ----------- | ------------------------------------------------------ |
+| `QUOTE_EXPIRED`            | 422         | Quote TTL elapsed                                      |
+| `QUOTE_ALREADY_EXECUTED`   | 409         | Quote already used                                     |
+| `QUOTE_NOT_FOUND`          | 404         | Unknown quote ID                                       |
+| `INSUFFICIENT_BALANCE`     | 422         | Not enough source balance                              |
+| `RATES_STALE`              | 503         | Cached rates too old                                   |
+| `ROUTE_UNAVAILABLE`        | 422         | No routing path for pair                               |
+| `CUSTOMER_NOT_FOUND`       | 404         | Unknown customer ID                                    |
+| `IDEMPOTENCY_KEY_CONFLICT` | 422         | Key reused for different quote                         |
+| `MISSING_IDEMPOTENCY_KEY`  | 422         | `Idempotency-Key` header absent on execute             |
+| `INVALID_AMOUNT`           | 422         | Amount ≤ 0 or non-numeric                              |
+| `INTERNAL_ERROR`           | 500         | Unexpected server fault                                |
+| `INVALID_CURRENCY_PAIR`    | 422         | Invalid currency pair in quotes (source ==destination) |
 
 ---
 

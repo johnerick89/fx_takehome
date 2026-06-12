@@ -2,10 +2,9 @@
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import SpreadNotFoundError
 from app.db.session import get_db
 from app.schemas.rate import (
     RateListResponse,
@@ -63,14 +62,11 @@ def update_spread_endpoint(
     db: Session = Depends(get_db),
 ) -> SpreadResponse:
     """Update buy and sell spreads for a currency pair."""
-    try:
-        spread = update_spread(
-            db,
-            base,
-            quote,
-            Decimal(payload.buy_spread),
-            Decimal(payload.sell_spread),
-        )
-    except SpreadNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=exc.message) from exc
+    spread = update_spread(
+        db,
+        base,
+        quote,
+        Decimal(payload.buy_spread),
+        Decimal(payload.sell_spread),
+    )
     return SpreadResponse.model_validate(spread)

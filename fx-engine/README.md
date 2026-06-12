@@ -147,6 +147,6 @@ Test suites: health, middleware, logging, database.
 | 01   | Database      | Done        |
 | 02   | Customers     | Not started |
 | 03   | Rates         | Not started |
-| 04   | Quotes        | Not started |
+| 04   | Quotes        | Complete    |
 | 05   | Execute       | Not started |
 | 06   | Observability | Not started |

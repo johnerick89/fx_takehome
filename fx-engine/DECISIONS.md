@@ -96,6 +96,20 @@ app/api/
 
 This decision is applied accross all other designs.
 
+### 9. InvalidCurrencyPairError instead of reusing InvalidAmountError
+
+The AI-generated quote service raised `InvalidAmountError` when `from_currency == to_currency`. I split this into a dedicated `InvalidCurrencyPairError`.
+**Reasoning:** `InvalidAmountError` should mean the amount is the problem (zero, negative, malformed). Identical source/destination currencies is a pair validation issue — the amount could be perfectly valid. Returning `error_code: INVALID_AMOUNT` for this case would mislead API consumers debugging the error, and conflates two distinct invariants in SPEC.md.
+**Fix applied:**
+
+- Added `InvalidCurrencyPairError(AppError)` to `app/core/exceptions.py`
+- Updated `quote_service.create_quote` to raise it when `from_currency == to_currency`
+- Added `INVALID_CURRENCY_PAIR (422)` to the error code table in SPEC.md §10
+- Registered the new exception in the global exception handler mapping
+- Updated the corresponding test in tests/test_quotes.py to assert the new error code
+
+**This is another example of catching the AI conflating two distinct error conditions under one exception type** — same category as the Idempotency-Key header decision: precise error semantics matter for API consumers and for the production-framing criterion in code review.
+
 ---
 
 ## Decisions Delegated to AI (and Verified)

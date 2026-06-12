@@ -53,7 +53,7 @@ class Quote(BaseModel):
 
 Resolve a conversion path for `(from_currency, to_currency)`:
 
-1. If `from == to` → error (`INVALID_AMOUNT` or dedicated code).
+1. If `from == to` → error (`INVALID_CURRENCY_PAIR` or dedicated code).
 2. If direct rate exists in cache → path `[from, to]`.
 3. Else try `from → USD → to`.
 4. Else try `from → EUR → to`.

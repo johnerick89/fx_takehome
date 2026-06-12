@@ -2,15 +2,9 @@
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import (
-    CustomerNotFoundError,
-    DuplicateEmailError,
-    InvalidAmountError,
-    UnsupportedCurrencyError,
-)
 from app.db.session import get_db
 from app.schemas.customer import (
     BalanceCreditRequest,
@@ -38,10 +32,7 @@ def create_customer_endpoint(
     db: Session = Depends(get_db),
 ) -> CustomerResponse:
     """Create a new customer with zero balances."""
-    try:
-        customer = create_customer(db, payload.name, str(payload.email))
-    except DuplicateEmailError as exc:
-        raise HTTPException(status_code=409, detail=exc.message) from exc
+    customer = create_customer(db, payload.name, str(payload.email))
     return CustomerResponse.model_validate(customer)
 
 
@@ -67,10 +58,7 @@ def get_balances_endpoint(
     db: Session = Depends(get_db),
 ) -> BalanceListResponse:
     """Return all balances for a customer."""
-    try:
-        balances = get_balances(db, customer_id)
-    except CustomerNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=exc.message) from exc
+    balances = get_balances(db, customer_id)
     return BalanceListResponse(
         customer_id=customer_id,
         balances=[BalanceResponse.model_validate(balance) for balance in balances],
@@ -84,20 +72,12 @@ def credit_balance_endpoint(
     db: Session = Depends(get_db),
 ) -> BalanceCreditResponse:
     """Credit a customer balance."""
-    try:
-        balance, previous_amount = credit_balance(
-            db,
-            customer_id,
-            payload.currency,
-            Decimal(payload.amount),
-        )
-    except CustomerNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=exc.message) from exc
-    except UnsupportedCurrencyError as exc:
-        raise HTTPException(status_code=422, detail=exc.message) from exc
-    except InvalidAmountError as exc:
-        raise HTTPException(status_code=422, detail=exc.message) from exc
-
+    balance, previous_amount = credit_balance(
+        db,
+        customer_id,
+        payload.currency,
+        Decimal(payload.amount),
+    )
     return BalanceCreditResponse(
         currency=balance.currency,
         amount=balance.amount,
