@@ -16,8 +16,8 @@ The virtual environment lives one level above `fx-engine/` (at the repo root).
 cd fx-engine
 source ../.venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
-cp .env.example .env            # adjust if needed
-alembic upgrade head            # create / migrate SQLite database
+cp .env.example .env
+alembic upgrade head
 pytest tests/ -v --cov=app
 uvicorn app.main:app --reload --port 8000
 ```
@@ -187,3 +187,30 @@ All design modules are **complete**.
 | Atomic two-leg execution + rollback        | Done   | `tests/test_execute.py`                                |
 | Rate-source failure handling               | Done   | `SPEC.md` §4, `tests/test_rates.py`                    |
 | Observability (health, metrics, trace IDs) | Done   | `/healthz`, `/metrics`, middleware, log examples above |
+
+---
+
+## Known limitations
+
+- **SQLite** serialises writes (`BEGIN IMMEDIATE`). Fine for demonstrating concurrency
+  invariants; not suitable for high-throughput production without migrating to Postgres.
+- **No auth/authz** — all endpoints are open (explicitly out of scope).
+- **No fund reservation at quote time** — balance is checked only at execute; a quote
+  can succeed even if the customer cannot afford it until execute is attempted.
+- **Blunt validation mapping** — non-amount Pydantic errors also return `INVALID_AMOUNT`.
+- **Property tests are narrow** — Hypothesis covers direct-pair rounding invariants;
+  cross-pair properties are not exhaustive.
+- **Concurrency evidence via pytest only** — no standalone load-test script; see
+  `tests/test_execute.py::test_execute_concurrency_only_one_succeeds`.
+- **Rate provider keys optional for tests** — live `POST /rates/refresh` needs
+  `OPEN_EXCHANGE_RATES_APP_ID` and/or `EXCHANGE_RATE_API_KEY` in `.env`.
+- **`/metrics` is JSON-only** — not Prometheus text format.
+
+Assumptions and ambiguities are documented in [`SPEC.md`](SPEC.md) §14.
+
+---
+
+## What I would do with another day
+
+See [`DECISIONS.md`](DECISIONS.md#what-i-would-do-with-another-day) for observability,
+security, API completeness, hardening, and Postgres migration plans.
